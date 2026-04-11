@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TuringMind Arena</title>
+  <link rel="stylesheet" href="/static/css/arena.css">
+  <style>
+    html { background: #1a1613; }
+    html[data-theme="light"] { background: #FFF4EA; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- MOBILE NAV -->
+  <div class="mobile-nav" id="mobile-nav">
+    <button class="mobile-nav-btn" id="mobile-left-btn" onclick="App.toggleMobilePanel('left')" title="Menu">☰</button>
+    <span class="mobile-nav-title" id="mobile-title">TuringMind</span>
+    <button class="mobile-nav-btn" id="mobile-right-btn" onclick="App.toggleMobilePanel('right')" title="Info">ℹ</button>
+  </div>
+
+  <!-- LEFT PANEL -->
+  <div id="left-panel">
+    <div class="panel-header">
+      <h2>TuringMind</h2>
+      <div style="display:flex;gap:4px;align-items:center">
+        <button class="theme-toggle" onclick="App.toggleMarkdown()" title="Toggle markdown rendering" id="md-toggle" style="font-size:11px;opacity:0.5">MD</button>
+        <button class="theme-toggle" onclick="App.toggleTheme()" title="Toggle theme">
+          <span id="theme-icon">☀</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Sessions</span>
+        <button class="btn btn-sm btn-ghost" onclick="App.createSession()">+ New</button>
+      </div>
+      <div id="session-list"></div>
+    </div>
+
+    <div class="panel-section" style="flex:1;display:flex;flex-direction:column;overflow:hidden;border-bottom:none">
+      <div class="panel-section-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Laureates (81)</span>
+        <button class="btn btn-sm btn-ghost" onclick="App.spinWheel()">Spin</button>
+      </div>
+      <div style="padding:4px 12px 8px">
+        <input type="text" id="laureate-search" placeholder="Search name, year, topic..."
+               style="width:100%;padding:6px 10px;border:1px solid var(--border-input);border-radius:var(--radius-md);background:var(--bg-input);color:var(--text-primary);font-family:var(--font-body);font-size:12.5px;outline:none;transition:border-color 0.2s"
+               onfocus="this.style.borderColor='var(--border-focus)'"
+               onblur="this.style.borderColor='var(--border-input)'">
+      </div>
+      <div id="laureate-list-container" style="flex:1;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- MAIN CANVAS -->
+  <div id="main-canvas">
+    <div id="chat-header">
+      <span class="arena-title" id="arena-title">Select or create a session</span>
+      <div class="active-laureates-bar" id="active-laureates"></div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" data-mode="ask">Ask</button>
+        <button class="mode-btn" data-mode="debate">Debate</button>
+        <button class="mode-btn" data-mode="challenge">Challenge</button>
+        <button class="mode-btn" data-mode="panel">Panel</button>
+      </div>
+    </div>
+
+    <div id="chat-messages">
+      <div class="empty-state">
+        <div class="empty-icon" style="font-family:var(--font-display);font-size:28px;opacity:0.4">TM</div>
+        <div class="empty-title">Welcome to TuringMind Arena</div>
+        <div class="empty-sub">Add Turing Award laureates from the left panel and start a conversation. Try the Spin button for a surprise!</div>
+      </div>
+    </div>
+
+    <div id="panel-banner" class="panel-banner" style="display:none">
+      <span>Panel mode — laureates are discussing among themselves</span>
+      <button class="panel-stop" onclick="App.stopPanel()">Stop</button>
+    </div>
+    <div id="challenge-banner" class="challenge-banner" style="display:none">
+      <span>Challenge in progress — Claim, Critique, Rebuttal</span>
+    </div>
+
+    <!-- Bottom Input -->
+    <div id="bottom-panel">
+      <div class="input-row" style="position:relative">
+        <div class="mention-dropdown" id="mention-dropdown"></div>
+        <input type="file" id="file-input" style="display:none" accept=".txt,.md,.py,.js,.json,.csv,.pdf,.ts,.html,.css,.sql,.yaml,.toml,.xml,.sh,.c,.cpp,.h,.java,.go,.rs,.rb,.r,.log">
+        <button class="btn btn-icon btn-ghost file-upload-btn" onclick="document.getElementById('file-input').click()" title="Attach file">Attach</button>
+        <textarea id="chat-input" rows="1" placeholder="Ask a question, start a debate, or @mention a laureate..."></textarea>
+        <button class="btn btn-primary btn-icon" onclick="App.send()" title="Send">➤</button>
+      </div>
+      <div class="file-indicator" id="file-indicator" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="right-panel">
+    <div class="panel-header">
+      <h2 id="right-panel-title">Details</h2>
+      <div class="right-tabs" id="right-tabs">
+        <button class="rtab active" onclick="App.showRightTab('info')" id="rtab-info">Profile</button>
+        <button class="rtab" onclick="App.showRightTab('topics')" id="rtab-topics">Topics</button>
+        <button class="rtab" onclick="App.showRightTab('collection')" id="rtab-collection">Cards</button>
+        <button class="rtab" onclick="App.showRightTab('wiki')" id="rtab-wiki">Wiki</button>
+      </div>
+    </div>
+    <div id="right-content" style="flex:1;overflow-y:auto">
+      <div class="placeholder-text">Click a laureate to see their profile.</div>
+    </div>
+
+    <!-- Knowledge Graph (bottom of right panel, collapsible, resizable) -->
+    <div class="kg-panel" id="kg-panel">
+      <div class="kg-resize-handle" id="kg-resize-handle"></div>
+      <div class="kg-header">
+        <span class="kg-title">Knowledge Graph</span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <button class="kg-btn" onclick="App.kgExportPNG()" title="Export PNG">⤓</button>
+          <button class="kg-btn" onclick="App.refreshKG()" title="Refresh">↻</button>
+          <button class="kg-btn" id="kg-toggle" onclick="App.toggleKG()" title="Collapse">▾</button>
+        </div>
+      </div>
+      <div class="kg-toolbar" id="kg-toolbar">
+        <input class="kg-search" id="kg-search" placeholder="Search..." oninput="App.kgSearch(this.value)">
+        <div class="kg-filters">
+          <button class="kg-filter-btn active" data-type="concept" onclick="App.kgToggleFilter('concept',this)" title="Concepts">C</button>
+          <button class="kg-filter-btn active" data-type="entity" onclick="App.kgToggleFilter('entity',this)" title="Entities">E</button>
+          <button class="kg-filter-btn active" data-type="session_summary" onclick="App.kgToggleFilter('session_summary',this)" title="Sessions">S</button>
+        </div>
+        <select class="kg-layout-select" id="kg-layout-select" onchange="App.kgSetLayout(this.value)">
+          <option value="force">Force</option>
+          <option value="radial">Radial</option>
+          <option value="hierarchical">Tree</option>
+        </select>
+      </div>
+      <div class="kg-body" id="kg-body">
+        <canvas id="kg-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- d3.js: local vendor first, CDN fallback -->
+<script src="/static/vendor/d3.min.js"></script>
+<script>
+  if (typeof d3 === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"><\/script>');
+    console.warn('d3.js: using CDN fallback. Run: python manage.py vendor-deps');
+  }
+</script>
+<!-- marked.js: local vendor first, CDN fallback (only loaded when markdown mode enabled) -->
+<script src="/static/vendor/marked.min.js"></script>
+<script>
+  if (typeof marked === 'undefined') {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.7/marked.min.js"><\/script>');
+  }
+</script>
+<script src="/static/js/arena.js"></script>
+</body>
+</html>
