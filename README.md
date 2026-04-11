@@ -1,5 +1,8 @@
 # TuringMind Arena
 
+
+![main](assets/screenshot.png)
+
 A multi-agent chat arena where Turing Award laureates come alive, debate your problems, and leave a traceable knowledge graph behind.
 
 
