@@ -1061,7 +1061,3 @@ c['data']['debug'] = True
 rm turingmind.duckdb*
 uv run server.py   # Schema auto-creates on first boot
 ```
-
----
-
-*End of User Manual. For development history see TaskList.md. For code quality see RC-CodeReview.md.*

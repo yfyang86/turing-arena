@@ -1,6 +1,10 @@
 # TuringMind Arena
 
+
 A multi-agent chat arena where Turing Award laureates come alive, debate your problems, and leave a traceable knowledge graph behind.
+
+![figure](./assests/screenshot.png)
+
 
 ## Quick Start
 
@@ -130,12 +134,13 @@ turingmind-arena/
 │   ├── img/avatars/          # 324 PNG portrait files
 │   └── vendor/               # d3.js, marked.js, fonts (after vendor-deps)
 ├── templates/index.html      # Layout with KG toolbar
-├── UI_PRINCIPLES.md          # Symbol vs text label policy
-└── RC3_ROADMAP.md            # Planning doc
 ```
 
-## Documents
+## License
 
-- **UI_PRINCIPLES.md** — keep universal symbols (☰ ➤ × ☀ ☾), use text for domain actions
-- **RC3_ROADMAP.md** — planning document for graph/wiki/multi-user features
-- **TaskList.md** — 170 completed tasks across RC1–RC3
+Avatar: CC 4.0
+Other code: Apache 2.0
+
+Author: Yifan Yang <yfyang.86 hotmail>
+
+
