@@ -42,6 +42,14 @@ max_laureates_per_room = 5
 debate_max_rounds = 3
 typing_delay_ms = 800
 
+[wiki]
+# Timeout for detecting stalled LLM connection (no data received), in seconds
+heartbeat_timeout_s = 5
+# Total timeout for LLM generation calls (ingest + generate), in seconds
+generation_timeout_s = 600
+# Max input context length sent to LLM (characters)
+max_context_length = 20000
+
 [data]
 turingskill_path = "./turingskill"
 duckdb_path = "./turingmind.duckdb"

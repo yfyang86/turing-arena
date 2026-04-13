@@ -1,18 +1,6 @@
 # TuringMind Arena
 
-
-![main](assets/screenshot.png)
-
 A multi-agent chat arena where Turing Award laureates come alive, debate your problems, and leave a traceable knowledge graph behind.
-
-
-Author: Yifan Yang <yfyang86 hotmail>
-
-License: 
-
-- Anything other than avatr: Apache 2.0 
-- Avatar: is generated from VLM, CC By 4.0
-
 
 ## Quick Start
 

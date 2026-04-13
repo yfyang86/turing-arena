@@ -79,7 +79,7 @@ class SessionManager:
             meta = None
             if r[4]:
                 try: meta = json.loads(r[4])
-                except: pass
+                except (json.JSONDecodeError, TypeError): pass
             results.append({"id": r[0], "role": r[1], "laureate_slug": r[2],
                             "content": r[3], "metadata": meta, "created_at": str(r[5])})
         return results

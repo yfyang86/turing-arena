@@ -1943,6 +1943,7 @@ const App = {
         html += `<div class="info-section"><div class="info-section-title">Actions</div>`;
         html += `<div class="wiki-history-actions">`;
         html += `<button class="btn btn-sm btn-primary" onclick="App.wikiGenerate('${this.esc(slug)}')">Generate (LLM)</button>`;
+        html += `<button class="btn btn-sm btn-ghost" onclick="App.wikiGenerate('${this.esc(slug)}', true)">Force Rewrite</button>`;
         html += `</div></div>`;
       }
 
@@ -2084,12 +2085,12 @@ const App = {
     finally { this._wikiClearStatus(); }
   },
 
-  async wikiGenerate(slug) {
-    this._wikiSetStatus('Generating structured page via LLM...');
+  async wikiGenerate(slug, force = false) {
+    this._wikiSetStatus(force ? 'Force rewriting page via LLM...' : 'Generating structured page via LLM...');
     try {
       const res = await fetch('/api/wiki/generate', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ slug })
+        body: JSON.stringify({ slug, force })
       });
       const data = await res.json();
       if (data.error) { this.toast(data.error, 'error'); return; }

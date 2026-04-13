@@ -177,7 +177,7 @@ def cmd_status(args):
             try:
                 count = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
                 tables[t] = count
-            except:
+            except Exception:
                 tables[t] = "?"
         conn.close()
         print(f"\nDatabase:     {db_path} ({db_path.stat().st_size / 1024:.0f} KB)")

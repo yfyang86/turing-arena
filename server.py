@@ -5,8 +5,17 @@ from __future__ import annotations
 import logging
 import os
 import sys
-import tomllib
 from pathlib import Path
+
+if sys.version_info < (3, 11):
+    try:
+        import tomli as tomllib
+    except ImportError:
+        print("Python < 3.11 detected. Install tomli: pip install tomli")
+        print("Or use: uv run server.py")
+        sys.exit(1)
+else:
+    import tomllib
 
 import tornado.ioloop
 import tornado.web
@@ -142,7 +151,7 @@ def make_app(config: dict) -> tornado.web.Application:
         ],
         template_path=str(BASE_DIR / "templates"),
         static_path=str(BASE_DIR / "static"),
-        debug=True,
+        debug=config.get("data", {}).get("debug", False),
         config=config,
         llm_router=llm_router,
         agent_manager=agent_manager,
@@ -183,7 +192,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     config = load_config()
-    debug = config.get("data", {}).get("debug", True)
+    debug = config.get("data", {}).get("debug", False)
     setup_logging(debug)
     port = int(os.environ.get("PORT", 8888))
     app = make_app(config)

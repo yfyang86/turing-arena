@@ -328,7 +328,7 @@ class WikiEngine:
         if not r: return None
         fm = None
         try: fm = json.loads(r[5]) if r[5] else None
-        except: pass
+        except (json.JSONDecodeError, TypeError): pass
         return {"id": r[0], "slug": r[1], "title": r[2], "page_type": r[3], "content": r[4],
                 "frontmatter": fm, "content_hash": r[6], "parent_hash": r[7],
                 "created_at": str(r[8]), "updated_at": str(r[9]), "version": r[10]}
@@ -391,7 +391,7 @@ class WikiEngine:
         for r in rows:
             fm = None
             try: fm = json.loads(r[4]) if r[4] else None
-            except: pass
+            except (json.JSONDecodeError, TypeError): pass
             results.append({"id": r[0], "slug": r[1], "title": r[2], "page_type": r[3],
                             "frontmatter": fm, "content_hash": r[5], "parent_hash": r[6],
                             "created_at": str(r[7]), "updated_at": str(r[8]), "version": r[9]})
@@ -443,11 +443,18 @@ class WikiEngine:
         if len(words) > 1:
             for word in words:
                 wlike = f"%{word}%"
-                extra = self.conn.execute(
-                    "SELECT slug, title, page_type, content, updated_at FROM wiki_pages "
-                    "WHERE (title ILIKE ? OR slug ILIKE ?) AND slug NOT IN ({}) LIMIT 5".format(
-                        ','.join(f"'{s}'" for s in seen)),
-                    [wlike, f"%{_slugify(word)}%"]).fetchall()
+                # Use parameterized NOT IN (avoid SQL injection from seen set)
+                if seen:
+                    placeholders = ",".join("?" for _ in seen)
+                    extra = self.conn.execute(
+                        f"SELECT slug, title, page_type, content, updated_at FROM wiki_pages "
+                        f"WHERE (title ILIKE ? OR slug ILIKE ?) AND slug NOT IN ({placeholders}) LIMIT 5",
+                        [wlike, f"%{_slugify(word)}%"] + list(seen)).fetchall()
+                else:
+                    extra = self.conn.execute(
+                        "SELECT slug, title, page_type, content, updated_at FROM wiki_pages "
+                        "WHERE (title ILIKE ? OR slug ILIKE ?) LIMIT 5",
+                        [wlike, f"%{_slugify(word)}%"]).fetchall()
                 for r in extra:
                     if r[0] not in seen:
                         seen.add(r[0])
@@ -465,7 +472,8 @@ class WikiEngine:
         try:
             self.conn.execute("INSERT INTO wiki_links VALUES (?,?,?,?)",
                               [from_slug, to_slug, link_type, datetime.now().isoformat()])
-        except: pass  # duplicate
+        except Exception:
+            pass  # duplicate key — expected
 
     def get_links(self, slug: str) -> dict:
         outbound = self.conn.execute("SELECT to_slug,link_type FROM wiki_links WHERE from_slug=?", [slug]).fetchall()
@@ -1274,7 +1282,7 @@ class WikiEngine:
         for r in rows:
             fm = None
             try: fm = json.loads(r[5]) if r[5] else None
-            except: pass
+            except (json.JSONDecodeError, TypeError): pass
             results.append({"id": r[0], "slug": r[1], "version": r[2], "title": r[3],
                             "content": r[4], "frontmatter": fm,
                             "content_hash": r[6], "saved_at": str(r[7])})
@@ -1590,10 +1598,10 @@ class WikiEngine:
 
         return "\n\n".join(parts) if parts else "(no context found — try ingesting sessions first)"
 
-    async def generate_structured_page(self, slug: str, llm_router) -> dict:
+    async def generate_structured_page(self, slug: str, llm_router, force: bool = False) -> dict:
         """Use LLM to generate or update a wiki page.
-        If page already has substantial content, asks LLM to evaluate and merge
-        rather than fully rewrite. Only rewrites placeholder pages."""
+        If force=True, always does a full rewrite regardless of existing content.
+        Otherwise, asks LLM to evaluate and merge (may return NO_CHANGE)."""
         page = self.get_page(slug)
         if not page:
             return {"error": f"Page '{slug}' not found"}
@@ -1615,7 +1623,7 @@ class WikiEngine:
                            and "_(to be filled)_" not in existing_content
                            and len(existing_content) > 100)
 
-        if has_real_content:
+        if has_real_content and not force:
             # Incremental mode: ask LLM to evaluate and merge, not rewrite
             # Strip timeline section from existing content for the prompt
             tl_idx = existing_content.find("## Timeline")

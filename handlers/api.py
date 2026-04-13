@@ -12,12 +12,21 @@ class BaseAPIHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", "application/json")
     def write_json(self, data):
         self.write(json.dumps(data))
+    def parse_body(self) -> dict | None:
+        """Safely parse JSON request body. Returns None on error (sends 400)."""
+        try:
+            return json.loads(self.request.body)
+        except (json.JSONDecodeError, TypeError):
+            self.set_status(400)
+            self.write_json({"error": "Invalid JSON body"})
+            return None
 
 # --- Sessions ---
 class SessionListHandler(BaseAPIHandler):
     def get(self): self.write_json(self.application.settings["session_manager"].list_sessions())
     def post(self):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         self.write_json(self.application.settings["session_manager"].create_session(body.get("name", "New Arena")))
 
 class SessionHandler(BaseAPIHandler):
@@ -25,7 +34,8 @@ class SessionHandler(BaseAPIHandler):
         self.application.settings["session_manager"].delete_session(sid)
         self.write_json({"ok": True})
     def patch(self, sid):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         if "name" in body:
             self.application.settings["session_manager"].rename_session(sid, body["name"])
         self.write_json({"ok": True})
@@ -36,7 +46,8 @@ class SessionLaureateHandler(BaseAPIHandler):
         self.write_json([am.get(s).to_dict() for s in sm.get_session_laureates(sid) if am.get(s)])
 
     def post(self, sid):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         slug = body.get("slug")
         sm = self.application.settings["session_manager"]
         max_l = self.application.settings["config"].get("arena", {}).get("max_laureates_per_room", 5)
@@ -47,7 +58,8 @@ class SessionLaureateHandler(BaseAPIHandler):
         self.write_json({"ok": True})
 
     def delete(self, sid):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         self.application.settings["session_manager"].remove_laureate(sid, body.get("slug"))
         self.write_json({"ok": True})
 
@@ -178,7 +190,8 @@ class TopicListHandler(BaseAPIHandler):
 
 class TopicAddHandler(BaseAPIHandler):
     def post(self):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         name = body.get("name", "").strip().lower()
         if not name:
             self.set_status(400); self.write_json({"error": "name required"}); return

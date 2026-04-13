@@ -10,6 +10,14 @@ class BaseWikiHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", "application/json")
     def write_json(self, data):
         self.write(json.dumps(data))
+    def parse_body(self) -> dict | None:
+        """Safely parse JSON request body. Returns None on error (sends 400)."""
+        try:
+            return json.loads(self.request.body)
+        except (json.JSONDecodeError, TypeError):
+            self.set_status(400)
+            self.write_json({"error": "Invalid JSON body"})
+            return None
     @property
     def wiki(self):
         return self.application.settings["wiki_engine"]
@@ -22,7 +30,8 @@ class WikiStatsHandler(BaseWikiHandler):
 
 class WikiIngestHandler(BaseWikiHandler):
     async def post(self):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         session_id = body.get("session_id")
         force = body.get("force", False)
         use_llm = body.get("use_llm", False)
@@ -47,7 +56,8 @@ class WikiIngestAllHandler(BaseWikiHandler):
         try:
             body = json.loads(self.request.body) if self.request.body else {}
             use_llm = body.get("use_llm", False)
-        except: pass
+        except (json.JSONDecodeError, TypeError):
+            pass
         llm = self.application.settings["llm_router"] if use_llm else None
         results = []
         for s in sessions:
@@ -69,7 +79,8 @@ class WikiIngestAllHandler(BaseWikiHandler):
 
 class WikiAddPageHandler(BaseWikiHandler):
     def post(self):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         title = body.get("title", "").strip()
         page_type = body.get("page_type", "concept")
         if not title:
@@ -154,7 +165,8 @@ class WikiRelatedHandler(BaseWikiHandler):
 
 class WikiConsolidateHandler(BaseWikiHandler):
     def post(self):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         primary = body.get("primary")
         merge = body.get("merge", [])
         if not primary or not merge:
@@ -164,12 +176,14 @@ class WikiConsolidateHandler(BaseWikiHandler):
 
 class WikiGenerateHandler(BaseWikiHandler):
     async def post(self):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         slug = body.get("slug")
+        force = body.get("force", False)
         if not slug:
             self.set_status(400); self.write_json({"error": "slug required"}); return
         llm = self.application.settings["llm_router"]
-        result = await self.wiki.generate_structured_page(slug, llm)
+        result = await self.wiki.generate_structured_page(slug, llm, force=force)
         if "error" in result:
             self.set_status(400)
         self.write_json(result)
@@ -177,7 +191,8 @@ class WikiGenerateHandler(BaseWikiHandler):
 
 class WikiDisambiguateHandler(BaseWikiHandler):
     def post(self):
-        body = json.loads(self.request.body)
+        body = self.parse_body()
+        if body is None: return
         term = body.get("term")
         entries = body.get("entries", [])
         if not term or not entries:
