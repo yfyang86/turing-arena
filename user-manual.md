@@ -684,10 +684,10 @@ erDiagram
     sessions ||--o{ messages : contains
     sessions ||--o{ wiki_ingest_log : tracked_by
     messages ||--o{ topic_mentions : tagged_with
-    topics ||--o{ topic_mentions : mentioned_in
+    topics   ||--o{ topic_mentions : mentioned_in
 
-    wiki_pages ||--o{ wiki_links : from
-    wiki_pages ||--o{ wiki_links : to
+    wiki_pages ||--o{ wiki_links : links_from
+    wiki_pages ||--o{ wiki_links : links_to
     wiki_pages ||--o{ wiki_page_history : versioned
     wiki_pages ||--o{ wiki_concept_timeline : tracked
 
@@ -747,6 +747,33 @@ erDiagram
     user_collection {
         varchar laureate_slug PK
         integer interaction_count
+    }
+
+    session_laureates {
+        varchar id PK
+        varchar session_id FK
+        varchar laureate_slug
+        timestamp created_at
+    }
+
+    topic_mentions {
+        varchar id PK
+        varchar message_id FK
+        varchar topic_slug FK
+        integer start
+        integer end
+    }
+
+    topics {
+        varchar slug PK
+        varchar name
+    }
+
+    wiki_ingest_log {
+        varchar id PK
+        varchar session_id FK
+        text notes
+        timestamp created_at
     }
 ```
 
